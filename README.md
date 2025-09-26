@@ -8,7 +8,7 @@ In this challenge, I will be building a spelling correction tool that will sugge
 
 - The spelling correction tool will be written in C#
 - The spelling correction tool will just be a console application
-- The spelling correction tool will use frequency data from a single text file
+- The spelling correction tool will use frequency data generated from this [dataset](https://www.kaggle.com/datasets/rtatman/english-word-frequency)
 
 ## Goals
 

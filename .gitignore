@@ -1,0 +1,43 @@
+# Build results
+bin/
+obj/
+out/
+Debug/
+Release/
+
+# Visual Studio Code / Cursor
+.vscode/
+.history/
+*.code-workspace
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# NuGet packages
+*.nupkg
+*.snupkg
+# The packages folder can be ignored if you use 'restore' to fetch them
+packages/
+# Except build/, which may be needed
+!packages/build/
+
+# Logs
+*.log
+
+# Dotnet specific
+*.dll
+*.exe
+*.pdb
+*.cache
+*.config
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Data
+word_frequencies.json
+unigram_freq.csv
