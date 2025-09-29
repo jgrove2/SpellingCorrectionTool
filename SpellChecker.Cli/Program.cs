@@ -1,6 +1,8 @@
-namespace SpellChecker.Core;
+using SpellChecker.Core;
 
-public class Program
+namespace SpellChecker.Cli;
+
+public static class Program
 {
     public static void Main(string[] args)
     {
@@ -11,7 +13,9 @@ public class Program
             Console.WriteLine("Spelling service is not initialized.");
             return;
         }
-        var text = "I went to the libary to borow a interesting buk.";
+        var text = "I went to the libllary to borow a interesting buk.";
+        
+        Console.WriteLine("=== Spelling Suggestions (1 or 2 edits away) ===");
         var spellingResults = spellingService.CheckSpelling(text);
         foreach (var result in spellingResults)
         {

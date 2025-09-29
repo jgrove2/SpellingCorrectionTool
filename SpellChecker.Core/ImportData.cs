@@ -7,7 +7,7 @@ public class ImportData
 {
     private readonly string _csvPath = "/home/jgrove/Projects/SpellingCorrectionTool/SpellChecker.Core/data/unigram_freq.csv";
 
-    public Dictionary<string, long> WordDictionary = new();
+    public readonly Dictionary<string, long> WordDictionary = new();
 
     private bool _isInitialized = false;
     
@@ -36,8 +36,7 @@ public class ImportData
 
                 if (!long.TryParse(parts[1].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture,
                         out var count)) continue;
-                if(this.WordDictionary.ContainsKey(word)) continue;
-                this.WordDictionary.Add(word, count);
+                if(!this.WordDictionary.TryAdd(word, count)) continue;
             }
 
             reader.Close();

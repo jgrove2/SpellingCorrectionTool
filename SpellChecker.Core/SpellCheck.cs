@@ -24,7 +24,7 @@ public class SpellCheck(Dictionary<string, long> wordDictionary)
          return [];
       }
 
-      var possibleWords = _findAllPossibleWords(word);
+      var possibleWords = _findAllPossibleWordsWithOneOrTwoEdits(word);
 
       return possibleWords
          .OrderByDescending(tuple => tuple.Item2)
@@ -32,48 +32,47 @@ public class SpellCheck(Dictionary<string, long> wordDictionary)
          .Select(tuple => tuple.Item1)
          .ToList();
    }
-
-   private List<Tuple<string, long>> _findAllPossibleWords(string word)
+  
+   private List<Tuple<string, long>> _findAllPossibleWordsWithOneOrTwoEdits(string word)
    {
       var results = new List<Tuple<string, long>>();
-      var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-      // Remove one character at each position
-      for (var i = 0; i < word.Length; i++)
+      
+      foreach (var possibleWord in wordDictionary.Keys)
       {
-         var removed = word.Remove(i, 1);
-         if (removed.Length > 0 && DoesWordExist(removed) && seen.Add(removed))
+         if (CalculateLevenshteinDistance(word, possibleWord) <= 2)
          {
-            results.Add(Tuple.Create(removed, _getWordCount(removed)));
-         }
-      }
-
-      // Add one character (a-z) at each position
-      for (var i = 0; i <= word.Length; i++)
-      {
-         for (var c = 'a'; c <= 'z'; c++)
-         {
-            var added = word.Insert(i, c.ToString());
-            if (DoesWordExist(added) && seen.Add(added))
-            {
-               results.Add(Tuple.Create(added, _getWordCount(added)));
-            }
-         }
-      }
-      // Replace each character with (a-z)
-      for (var i = 0; i < word.Length; i++)
-      {
-         foreach (var c in Enumerable.Range('a', 26).Select(x => (char)x))
-         {
-            if (word[i] == c) continue; // skip if same letter
-            var replaced = word[..i] + c + word[(i + 1)..];
-            if (DoesWordExist(replaced) && seen.Add(replaced))
-            {
-               results.Add(Tuple.Create(replaced, _getWordCount(replaced)));
-            }
+            results.Add(Tuple.Create(possibleWord, wordDictionary[possibleWord]));
          }
       }
 
       return results;
+   }
+
+   private static int CalculateLevenshteinDistance(string source, string target)
+   {
+      if (string.IsNullOrEmpty(source)) return target?.Length ?? 0;
+      if (string.IsNullOrEmpty(target)) return source.Length;
+
+      var distance = new int[source.Length + 1, target.Length + 1];
+
+      // Initialize first row and column
+      for (var i = 0; i <= source.Length; i++)
+         distance[i, 0] = i;
+      for (var j = 0; j <= target.Length; j++)
+         distance[0, j] = j;
+
+      // Fill the distance matrix
+      for (var i = 1; i <= source.Length; i++)
+      {
+         for (var j = 1; j <= target.Length; j++)
+         {
+            var cost = source[i - 1] == target[j - 1] ? 0 : 1;
+            distance[i, j] = Math.Min(
+               Math.Min(distance[i - 1, j] + 1, distance[i, j - 1] + 1),
+               distance[i - 1, j - 1] + cost);
+         }
+      }
+
+      return distance[source.Length, target.Length];
    }
 }

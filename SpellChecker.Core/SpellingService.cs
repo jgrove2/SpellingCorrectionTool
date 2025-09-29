@@ -2,8 +2,8 @@ namespace SpellChecker.Core;
 
 public class SpellingService()
 {
-    private ImportData? _importData = new();
-    private SpellCheck _spellCheck;
+    private readonly ImportData? _importData = new();
+    private SpellCheck _spellCheck = null!;
 
     public bool IsInitialized()
     {
