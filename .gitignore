@@ -41,3 +41,4 @@ Thumbs.db
 # Data
 word_frequencies.json
 unigram_freq.csv
+valid_words_sorted_by_frequency.csv
