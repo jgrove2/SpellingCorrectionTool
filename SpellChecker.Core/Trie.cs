@@ -2,56 +2,48 @@ namespace SpellChecker.Core
 {
     public class Trie
     {
-        private readonly TrieNode _root;
+        private TrieNode _root = new(){IsEndOfWord = false};
 
-        public Trie()
+        public TrieNode GetRootNode()
         {
-            _root = new TrieNode();
+            return _root;
         }
 
-        /// <summary>
-        /// Inserts a word into the trie.
-        /// </summary>
-        /// <param name="word">The word to insert</param>
-        /// <param name="count">The count for the word</param>
-        public void Insert(string word, long count) 
+        public void AddString(string word, long count)
         {
-            if (string.IsNullOrEmpty(word))
-                return;
-
-            TrieNode current = _root;
-            foreach (char c in word.ToLowerInvariant()) 
+            var currentNode = _root;
+            foreach(var c in word)
             {
-                if (!current.Children.ContainsKey(c)) 
+                if(!currentNode.Children.TryGetValue(c, out var child))
                 {
-                    current.Children[c] = new TrieNode();
+                    child = new TrieNode(){IsEndOfWord = false};
+                    currentNode.Children.Add(c, child);
                 }
-                current = current.Children[c];
+                currentNode = child;
             }
-            current.IsEndOfWord = true;
-            current.Count = count;
+            currentNode.IsEndOfWord = true;
+            currentNode.Count = count;
         }
-        
-        /// <summary>
-        /// Checks if a word exists in the trie.
-        /// </summary>
-        /// <param name="word">The word to check</param>
-        /// <returns>-1 if the word does not exist, the count of the word if it exists</returns>
-        public long ContainsWord(string word) 
-        {
-            if (string.IsNullOrEmpty(word))
-                return -1;
 
-            TrieNode current = _root;
-            foreach (char c in word.ToLowerInvariant()) 
-            {
-                if (!current.Children.ContainsKey(c)) 
-                {
-                    return -1;
-                }
-                current = current.Children[c];
+        public List<Tuple<string, long>> GetWordsWithPrefix(string prefix)
+        {
+            var currentNode = _root;
+            foreach(var c in prefix) {
+                if(!currentNode.Children.TryGetValue(c, out var child)) return [];
+                currentNode = child;
             }
-            return current.Count;
+            var words = new List<Tuple<string, long>>();
+
+            void Dfs(TrieNode node, string currentWord)
+            {
+                if (node.IsEndOfWord) words.Add(new Tuple<string, long>(currentWord, node.Count));
+                foreach(var child in node.Children)
+                {
+                    Dfs(child.Value, currentWord + child.Key);
+                }
+            }
+            Dfs(currentNode, prefix);
+            return words;
         }
     }
 }

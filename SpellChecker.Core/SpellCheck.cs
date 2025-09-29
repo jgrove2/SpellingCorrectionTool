@@ -1,16 +1,20 @@
 namespace SpellChecker.Core;
 
-public class SpellCheck(Dictionary<string, long> wordDictionary)
+public class SpellCheck
 {
+    private readonly Dictionary<string, long> _wordDictionary;
+    private readonly int _maxSuggestions;
+    
+    public SpellCheck(Dictionary<string, long> wordDictionary, int maxSuggestions = 8)
+    {
+        _wordDictionary = wordDictionary;
+        _maxSuggestions = maxSuggestions;
+    }
    public bool DoesWordExist(string word)
    {
-      return  wordDictionary.ContainsKey(word);
+      return  _wordDictionary.ContainsKey(word);
    }
 
-   private long _getWordCount(string word)
-   {
-      return DoesWordExist(word) ? wordDictionary[word] : throw new Exception("Word not found");
-   }
 
    public List<string> FindSpellingSuggestion(string word)
    {
@@ -28,7 +32,7 @@ public class SpellCheck(Dictionary<string, long> wordDictionary)
 
       return possibleWords
          .OrderByDescending(tuple => tuple.Item2)
-         .Take(8)
+         .Take(_maxSuggestions)
          .Select(tuple => tuple.Item1)
          .ToList();
    }
@@ -37,11 +41,11 @@ public class SpellCheck(Dictionary<string, long> wordDictionary)
    {
       var results = new List<Tuple<string, long>>();
       
-      foreach (var possibleWord in wordDictionary.Keys)
+      foreach (var possibleWord in _wordDictionary.Keys)
       {
          if (CalculateLevenshteinDistance(word, possibleWord) <= 2)
          {
-            results.Add(Tuple.Create(possibleWord, wordDictionary[possibleWord]));
+            results.Add(Tuple.Create(possibleWord, _wordDictionary[possibleWord]));
          }
       }
 
@@ -50,7 +54,7 @@ public class SpellCheck(Dictionary<string, long> wordDictionary)
 
    private static int CalculateLevenshteinDistance(string source, string target)
    {
-      if (string.IsNullOrEmpty(source)) return target?.Length ?? 0;
+      if (string.IsNullOrEmpty(source)) return target.Length;
       if (string.IsNullOrEmpty(target)) return source.Length;
 
       var distance = new int[source.Length + 1, target.Length + 1];

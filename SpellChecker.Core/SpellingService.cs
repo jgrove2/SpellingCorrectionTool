@@ -1,10 +1,20 @@
 namespace SpellChecker.Core;
 
-public class SpellingService()
+public class SpellingService
 {
     private readonly ImportData? _importData = new();
     private SpellCheck _spellCheck = null!;
-
+    private AutoComplete _autoComplete = null!;
+    private readonly SpellingServiceConfig _config;
+    
+    public SpellingService() : this(new SpellingServiceConfig())
+    {
+    }
+    
+    public SpellingService(SpellingServiceConfig config)
+    {
+        _config = config;
+    }
     public bool IsInitialized()
     {
         var importData = this._importData;
@@ -16,7 +26,8 @@ public class SpellingService()
         if (_importData != null)
         {
             await _importData.AsyncImportData();
-            _spellCheck =  new SpellCheck(_importData.WordDictionary);
+            _spellCheck =  new SpellCheck(_importData.WordDictionary, _config.MaxSpellingSuggestions);
+            _autoComplete = new AutoComplete(_importData.WordsTrie, _config.MaxAutocompleteSuggestions);
         }
     }
 
@@ -40,4 +51,8 @@ public class SpellingService()
         return spellCheckResults;
     }
 
+    public List<string> GetAutocomplete(string prefix)
+    {
+        return  _autoComplete.GetAutoCompleteOptions(prefix);
+    }
 }

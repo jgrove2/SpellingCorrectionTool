@@ -6,7 +6,13 @@ public static class Program
 {
     public static void Main(string[] args)
     {
-        var spellingService = new SpellingService();
+        // Create configuration with custom settings
+        var config = new SpellingServiceConfig(
+            maxSpellingSuggestions: 5,    // Show only 5 spelling suggestions
+            maxAutocompleteSuggestions: 8  // Show only 8 autocomplete suggestions
+        );
+        
+        var spellingService = new SpellingService(config);
         spellingService.Initialize().Wait();
         if (!spellingService.IsInitialized())
         {
@@ -15,11 +21,13 @@ public static class Program
         }
         var text = "I went to the libllary to borow a interesting buk.";
         
-        Console.WriteLine("=== Spelling Suggestions (1 or 2 edits away) ===");
+        Console.WriteLine(text);
         var spellingResults = spellingService.CheckSpelling(text);
         foreach (var result in spellingResults)
         {
             Console.WriteLine($"{result.Key}: {string.Join(", ", result.Value)}");
         }
+        var autocompleteResults = spellingService.GetAutocomplete("lib");
+        Console.WriteLine($"Autocomplete results for 'lib': {string.Join(", ", autocompleteResults)}");
     }
 }
