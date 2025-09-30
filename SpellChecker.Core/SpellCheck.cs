@@ -1,9 +1,12 @@
+using System.Collections.Concurrent;
+
 namespace SpellChecker.Core;
 
 public class SpellCheck
 {
     private readonly Dictionary<string, long> _wordDictionary;
     private readonly int _maxSuggestions;
+    private readonly int _maxDistance = 2;
     
     public SpellCheck(Dictionary<string, long> wordDictionary, int maxSuggestions = 8)
     {
@@ -28,7 +31,27 @@ public class SpellCheck
          return [];
       }
 
-      var possibleWords = _findAllPossibleWordsWithOneOrTwoEdits(word);
+      var possibleWords = _findAllPossibleWordsWithUkkonenAndParallel(word);
+
+      return possibleWords
+         .OrderByDescending(tuple => tuple.Item2)
+         .Take(_maxSuggestions)
+         .Select(tuple => tuple.Item1)
+         .ToList();
+   }
+   public List<string> FindSpellingSuggestionWithWagnerFischer(string word)
+   {
+      if (DoesWordExist(word))
+      {
+         return [];
+      }
+
+      if (word.Length <= 0)
+      {
+         return [];
+      }
+
+      var possibleWords = _findAllPossibleWordsWithWagnerFischerAndParallel(word);
 
       return possibleWords
          .OrderByDescending(tuple => tuple.Item2)
@@ -37,19 +60,35 @@ public class SpellCheck
          .ToList();
    }
   
-   private List<Tuple<string, long>> _findAllPossibleWordsWithOneOrTwoEdits(string word)
+   private List<Tuple<string, long>> _findAllPossibleWordsWithUkkonenAndParallel(string word)
    {
-      var results = new List<Tuple<string, long>>();
-      
-      foreach (var possibleWord in _wordDictionary.Keys)
+      var results = new ConcurrentBag<Tuple<string, long>>();
+
+      var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = 8 };
+      Parallel.ForEach(_wordDictionary.Keys, parallelOptions, possibleWord =>
+      {
+         if (CalculateLevenshteinDistanceUkkonen(word, possibleWord, maxDistance: _maxDistance) <= 2)
+         {
+            results.Add(Tuple.Create(possibleWord, _wordDictionary[possibleWord]));
+         }
+      });
+
+      return results.ToList();
+   }
+   private List<Tuple<string, long>> _findAllPossibleWordsWithWagnerFischerAndParallel(string word)
+   {
+      var results = new ConcurrentBag<Tuple<string, long>>();
+
+      var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = 8 };
+      Parallel.ForEach(_wordDictionary.Keys, parallelOptions, possibleWord =>
       {
          if (CalculateLevenshteinDistanceWagnerFischer(word, possibleWord) <= 2)
          {
             results.Add(Tuple.Create(possibleWord, _wordDictionary[possibleWord]));
          }
-      }
+      });
 
-      return results;
+      return results.ToList();
    }
 
    // Wagner-Fischer dynamic programming approach to Levenshtein distance
