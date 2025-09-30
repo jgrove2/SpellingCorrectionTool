@@ -7,11 +7,14 @@ public class SpellCheck
     private readonly Dictionary<string, long> _wordDictionary;
     private readonly int _maxSuggestions;
     private readonly int _maxDistance = 2;
+    private readonly QGramIndex _qGramIndex;
     
     public SpellCheck(Dictionary<string, long> wordDictionary, int maxSuggestions = 8)
     {
         _wordDictionary = wordDictionary;
         _maxSuggestions = maxSuggestions;
+        _qGramIndex = new QGramIndex(q: 2);
+        _qGramIndex.BuildIndex(wordDictionary);
     }
    public bool DoesWordExist(string word)
    {
@@ -59,7 +62,41 @@ public class SpellCheck
          .Select(tuple => tuple.Item1)
          .ToList();
    }
-  
+
+   public List<string> FindSpellingSuggestionWithQGram(string word)
+   {
+      if (DoesWordExist(word))
+      {
+         return [];
+      }
+
+      if (word.Length <= 0)
+      {
+         return [];
+      }
+
+      // Get top 100 candidates using Q-gram pre-filtering
+      var candidates = _qGramIndex.GetCandidatesWithCommonGrams(word, minCommonGrams: 3);
+      
+      // Apply Ukkonen's algorithm only to the filtered candidates
+      var results = new List<Tuple<string, long>>();
+      
+      foreach (var candidate in candidates)
+      {
+         var editDistance = CalculateLevenshteinDistanceUkkonen(word, candidate, _maxDistance);
+         if (editDistance <= _maxDistance)
+         {
+            results.Add(Tuple.Create(candidate, _wordDictionary[candidate]));
+         }
+      }
+
+      return results
+         .OrderByDescending(tuple => tuple.Item2) // Frequency
+         .Take(_maxSuggestions)
+         .Select(tuple => tuple.Item1)
+         .ToList();
+   }
+
    private List<Tuple<string, long>> _findAllPossibleWordsWithUkkonenAndParallel(string word)
    {
       var results = new ConcurrentBag<Tuple<string, long>>();

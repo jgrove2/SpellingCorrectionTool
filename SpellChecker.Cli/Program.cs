@@ -187,15 +187,31 @@ public static class Program
         stopwatch.Stop();
         var wagnerMs = stopwatch.Elapsed.TotalMilliseconds;
 
-        // Calculate speedup
-        var speedup = wagnerMs / ukkonenMs;
+        // Test Q-Gram algorithm (hybrid)
+        stopwatch.Restart();
+        foreach (var word in inputs)
+        {
+            _ = spellCheck.FindSpellingSuggestionWithQGram(word);
+        }
+        stopwatch.Stop();
+        var qgramMs = stopwatch.Elapsed.TotalMilliseconds;
+
+        // Calculate speedups
+        var ukkonenSpeedup = wagnerMs / ukkonenMs;
+        var qgramSpeedup = wagnerMs / qgramMs;
 
         Console.WriteLine($"Ukkonen Algorithm:     {ukkonenMs:F2} ms");
         Console.WriteLine($"Wagner-Fischer:        {wagnerMs:F2} ms");
-        Console.WriteLine($"Speedup (Ukkonen):     {speedup:F2}x faster");
+        Console.WriteLine($"Q-Gram (Hybrid):       {qgramMs:F2} ms");
+        Console.WriteLine();
+        Console.WriteLine($"Speedups vs Wagner-Fischer:");
+        Console.WriteLine($"  Ukkonen:             {ukkonenSpeedup:F2}x faster");
+        Console.WriteLine($"  Q-Gram (Hybrid):     {qgramSpeedup:F2}x faster");
+        Console.WriteLine();
         Console.WriteLine($"Average per word:");
         Console.WriteLine($"  Ukkonen:             {ukkonenMs / inputs.Length:F3} ms");
         Console.WriteLine($"  Wagner-Fischer:      {wagnerMs / inputs.Length:F3} ms");
+        Console.WriteLine($"  Q-Gram (Hybrid):     {qgramMs / inputs.Length:F3} ms");
         Console.WriteLine();
     }
 
