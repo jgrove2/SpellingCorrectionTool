@@ -76,7 +76,7 @@ public class SpellCheck
       }
 
       // Get top 100 candidates using Q-gram pre-filtering
-      var candidates = _qGramIndex.GetCandidatesWithCommonGrams(word, minCommonGrams: 3);
+      var candidates = _qGramIndex.GetCandidatesWithCommonGrams(word,0.3);
       
       // Apply Ukkonen's algorithm only to the filtered candidates
       var results = new List<Tuple<string, long>>();

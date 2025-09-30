@@ -1,69 +1,79 @@
 namespace SpellChecker.Core;
 
-public class QGramIndex
+public class QGramIndex(int q = 2)
 {
-    private readonly int _q;
-    private readonly Dictionary<string, HashSet<string>> _index;
-    private readonly Dictionary<string, long> _wordFrequencies;
-
-    public QGramIndex(int q = 2)
-    {
-        _q = q;
-        _index = new Dictionary<string, HashSet<string>>();
-        _wordFrequencies = new Dictionary<string, long>();
-    }
+    private readonly Dictionary<int, HashSet<int>> _index = new(); // Hash codes instead of strings
+    private readonly Dictionary<string, long> _wordFrequencies = new();
+    private readonly List<string> _words = new(); // Word list for index lookup
+    private readonly Dictionary<string, int> _wordToIndex = new(); // Word to index mapping
 
     public void BuildIndex(Dictionary<string, long> wordDictionary)
     {
+        // First pass: build word index
         foreach (var kvp in wordDictionary)
         {
             _wordFrequencies[kvp.Key] = kvp.Value;
-            var qGrams = GetQGrams(kvp.Key);
+            _wordToIndex[kvp.Key] = _words.Count;
+            _words.Add(kvp.Key);
+        }
+
+        // Second pass: build q-gram index with hash codes
+        for (int wordIndex = 0; wordIndex < _words.Count; wordIndex++)
+        {
+            var word = _words[wordIndex];
+            var qGramHashes = GetQGramHashes(word);
             
-            foreach (var qGram in qGrams)
+            foreach (var qGramHash in qGramHashes)
             {
-                if (!_index.ContainsKey(qGram))
+                if (!_index.ContainsKey(qGramHash))
                 {
-                    _index[qGram] = new HashSet<string>();
+                    _index[qGramHash] = new HashSet<int>();
                 }
-                _index[qGram].Add(kvp.Key);
+                _index[qGramHash].Add(wordIndex);
             }
         }
     }
 
-    public List<string> GetCandidatesWithCommonGrams(string word, int minCommonGrams = 3)
+    public List<string> GetCandidatesWithCommonGrams(string word, double minCommonRatio, int maxDistance = 2)
     {
-        var qGrams = GetQGrams(word);
-        var candidateScores = new Dictionary<string, int>();
+        var qGramHashes = GetQGramHashes(word);
+        var candidateScores = new Dictionary<int, int>(); // Use word indices instead of strings
+        var totalQGrams = qGramHashes.Count;
+        var minCommonGrams = Math.Max(1, (totalQGrams * minCommonRatio));
         
-        // Count q-gram overlaps
-        foreach (var qGram in qGrams)
+        // Count q-gram overlaps using hash codes
+        foreach (var qGramHash in qGramHashes)
         {
-            if (!_index.TryGetValue(qGram, out var candidates)) continue;
-            foreach (var candidate in candidates)
+            if (!_index.TryGetValue(qGramHash, out var wordIndices)) continue;
+            foreach (var wordIndex in wordIndices)
             {
-                candidateScores.TryAdd(candidate, 0);
-                candidateScores[candidate]++;
+                if(Math.Abs(_words[wordIndex].Length - word.Length) > maxDistance) continue;
+                if(candidateScores.GetValueOrDefault(wordIndex, 0) >= minCommonGrams) break;
+                candidateScores.TryAdd(wordIndex, 0);
+                candidateScores[wordIndex]++;
             }
         }
 
-        // Filter to only candidates with at least 3 common q-grams
+        // Filter to only candidates with at least minCommonGrams common q-grams
         return candidateScores
             .Where(kvp => kvp.Value >= minCommonGrams)
-            .Select(kvp => kvp.Key)
+            .Select(kvp => _words[kvp.Key])
             .ToList();
     }
 
-    private List<string> GetQGrams(string word)
+    private List<int> GetQGramHashes(string word)
     {
-        var qGrams = new List<string>();
+        var qGramHashes = new List<int>();
         var paddedWord = $"#{word}#";
         
-        for (int i = 0; i <= paddedWord.Length - _q; i++)
+        for (var i = 0; i <= paddedWord.Length - q; i++)
         {
-            qGrams.Add(paddedWord.Substring(i, _q));
+            // Use Span<char> to avoid string allocations
+            var qGramSpan = paddedWord.AsSpan(i, q);
+            qGramHashes.Add(string.GetHashCode(qGramSpan));
         }
         
-        return qGrams;
+        return qGramHashes;
     }
+
 }
