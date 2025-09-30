@@ -43,7 +43,7 @@ public class SpellCheck
       
       foreach (var possibleWord in _wordDictionary.Keys)
       {
-         if (CalculateLevenshteinDistance(word, possibleWord) <= 2)
+         if (CalculateLevenshteinDistanceWagnerFischer(word, possibleWord) <= 2)
          {
             results.Add(Tuple.Create(possibleWord, _wordDictionary[possibleWord]));
          }
@@ -52,7 +52,8 @@ public class SpellCheck
       return results;
    }
 
-   private static int CalculateLevenshteinDistance(string source, string target)
+   // Wagner-Fischer dynamic programming approach to Levenshtein distance
+   public static int CalculateLevenshteinDistanceWagnerFischer(string source, string target)
    {
       if (string.IsNullOrEmpty(source)) return target.Length;
       if (string.IsNullOrEmpty(target)) return source.Length;
@@ -78,5 +79,69 @@ public class SpellCheck
       }
 
       return distance[source.Length, target.Length];
+   }
+
+   // Ukkonen's algorithm for Levenshtein distance with a default maxDistance of 2
+   public static int CalculateLevenshteinDistanceUkkonen(string source, string target, int maxDistance = 2)
+   {
+      if (string.IsNullOrEmpty(source)) return target.Length;
+      if (string.IsNullOrEmpty(target)) return source.Length;
+
+      int m = source.Length;
+      int n = target.Length;
+
+      // If the length difference is greater than maxDistance, return a value greater than maxDistance
+      if (Math.Abs(m - n) > maxDistance)
+         return maxDistance + 1;
+
+      // Only keep two rows in memory
+      int[] prevRow = new int[n + 1];
+      int[] currRow = new int[n + 1];
+
+      for (int j = 0; j <= n; j++)
+         prevRow[j] = j;
+
+      for (int i = 1; i <= m; i++)
+      {
+         currRow[0] = i;
+
+         // Calculate the band boundaries
+         int from = Math.Max(1, i - maxDistance);
+         int to = Math.Min(n, i + maxDistance);
+
+         // If the band does not cover the first column, set it to maxDistance+1
+         if (from > 1)
+            currRow[from - 1] = maxDistance + 1;
+
+         bool rowExceeded = true;
+
+         for (int j = from; j <= to; j++)
+         {
+            int cost = source[i - 1] == target[j - 1] ? 0 : 1;
+            currRow[j] = Math.Min(
+               Math.Min(prevRow[j] + 1, currRow[j - 1] + 1),
+               prevRow[j - 1] + cost
+            );
+            if (currRow[j] <= maxDistance)
+            {
+               rowExceeded = false;
+            }
+         }
+
+         // If the band does not cover the last column, set it to maxDistance+1
+         if (to < n)
+            currRow[to + 1] = maxDistance + 1;
+
+         // If all values in this row are greater than maxDistance, break early
+         if (rowExceeded)
+            return maxDistance + 1;
+
+         // Swap rows
+         var temp = prevRow;
+         prevRow = currRow;
+         currRow = temp;
+      }
+
+      return prevRow[n] <= maxDistance ? prevRow[n] : maxDistance + 1;
    }
 }
